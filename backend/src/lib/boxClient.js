@@ -2,12 +2,25 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import BoxSDK from 'box-node-sdk';
 
-function loadBoxConfig() {
+function readConfigFromEnv() {
+  const base64 = process.env.BOX_CONFIG_JSON_BASE64;
+  if (base64) return Buffer.from(base64, 'base64').toString('utf-8');
+  return process.env.BOX_CONFIG_JSON ?? null;
+}
+
+function readConfigFromFile() {
   const configPath = process.env.BOX_CONFIG_PATH;
-  if (!configPath) {
-    throw new Error('BOX_CONFIG_PATH is not set');
+  if (!configPath) return null;
+  return readFileSync(resolve(configPath), 'utf-8');
+}
+
+function loadBoxConfig() {
+  const raw = readConfigFromEnv() ?? readConfigFromFile();
+  if (!raw) {
+    throw new Error(
+      'No Box config found. Set BOX_CONFIG_JSON_BASE64 (preferred for hosted envs) or BOX_CONFIG_PATH.',
+    );
   }
-  const raw = readFileSync(resolve(configPath), 'utf-8');
   const config = JSON.parse(raw);
   const { clientID, clientSecret } = config.boxAppSettings;
   if (!clientID || !clientSecret || !config.enterpriseID) {
