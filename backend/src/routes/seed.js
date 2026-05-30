@@ -3,6 +3,7 @@ import { writeJsonFile, updateJsonFile, uploadPhoto } from '../lib/box.js';
 import { fetchRedditPosts, fetchInstagramPostsByHashtags } from '../lib/apify.js';
 import { geocode } from '../lib/geocode.js';
 import { extractSpotFromPost } from '../lib/extractor.js';
+import { verifyGeocodedSpot } from '../lib/verifier.js';
 import { newSpotId, newPhotoId } from '../utils/ids.js';
 import { asyncHandler } from '../utils/http.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -61,15 +62,16 @@ function toIndexEntry(spot) {
 }
 
 async function redditPostToSpot(post, user) {
-  const coords = await geocode(post.title);
-  if (!coords) return null;
+  const candidate = await geocode(post.title);
+  if (!candidate) return null;
   const now = new Date().toISOString();
   return {
     id: newSpotId(),
     title: post.title,
     description: post.body?.slice(0, 1000) ?? '',
-    lat: coords.lat,
-    lng: coords.lng,
+    address: candidate.address,
+    lat: candidate.lat,
+    lng: candidate.lng,
     isPublic: true,
     ownerId: user.userId,
     ownerUsername: user.username,
@@ -93,28 +95,34 @@ async function importPhotoToBox(displayUrl) {
   return { photoId, photoUrl: url };
 }
 
-function buildGeocodeQuery(extracted) {
-  return [extracted.placeName, extracted.addressHint, extracted.neighborhood, 'Seattle']
-    .filter(Boolean)
-    .join(', ');
+function passesExtractionFilter(extracted) {
+  if (!extracted) return false;
+  if (!extracted.isNicheGem) return false;
+  if (!extracted.placeName) return false;
+  if (!extracted.searchQuery) return false;
+  if (extracted.confidence === 'low') return false;
+  return true;
 }
 
 async function instagramPostToSpot(post, user) {
   const extracted = await extractSpotFromPost(post);
-  if (!extracted?.isNicheGem || !extracted.placeName) return null;
-  if (extracted.confidence === 'low') return null;
+  if (!passesExtractionFilter(extracted)) return null;
 
-  const coords = await geocode(buildGeocodeQuery(extracted));
-  if (!coords) return null;
+  const candidate = await geocode(extracted.searchQuery);
+  if (!candidate) return null;
+
+  const verdict = await verifyGeocodedSpot({ extracted, candidate });
+  if (!verdict?.matches) return null;
 
   const { photoId, photoUrl } = await importPhotoToBox(post.displayUrl);
   const now = new Date().toISOString();
   return {
     id: newSpotId(),
     title: extracted.placeName,
-    description: post.caption?.slice(0, 1000) ?? '',
-    lat: coords.lat,
-    lng: coords.lng,
+    description: extracted.blurb ?? '',
+    address: candidate.address,
+    lat: candidate.lat,
+    lng: candidate.lng,
     isPublic: true,
     ownerId: user.userId,
     ownerUsername: user.username,

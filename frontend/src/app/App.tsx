@@ -15,7 +15,8 @@ import { Plus, Search, Map, Heart, User, MapPin, Settings, Trash2, LogOut, Shiel
 import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
 import { AuthUser, readUser, clearSession, isAdminUser } from "./lib/authStorage";
-import { logout } from "./lib/api";
+import { logout, fetchSpotById } from "./lib/api";
+import { spotToLocation } from "./lib/spotAdapter";
 import { useRecommendations } from "./hooks/useRecommendations";
 
 type TabType = "map" | "explore" | "favorites" | "profile";
@@ -110,9 +111,15 @@ export default function App() {
     toast.success("Location uploaded successfully!");
   };
 
-  const handleViewDetails = (location: Location) => {
+  const handleViewDetails = async (location: Location) => {
     setSelectedLocation(location);
     setDetailsDialogOpen(true);
+    try {
+      const fullSpot = await fetchSpotById(location.id);
+      setSelectedLocation(spotToLocation(fullSpot));
+    } catch {
+      // fall back to the index-entry version we already have
+    }
   };
 
   const handleShare = (location: Location) => {

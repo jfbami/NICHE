@@ -1,6 +1,7 @@
 const APIFY_BASE = 'https://api.apify.com/v2';
 const REDDIT_ACTOR = 'trudax~reddit-scraper';
 const INSTAGRAM_ACTOR = 'apify~instagram-scraper';
+const GOOGLE_MAPS_ACTOR = 'compass~crawler-google-places';
 
 function requireToken() {
   const token = process.env.APIFY_API_TOKEN;
@@ -70,4 +71,23 @@ export async function fetchInstagramPostsByHashtags({ hashtags, resultsPerHashta
     addParentData: false,
   });
   return items.map(toInstagramPost).filter(Boolean);
+}
+
+export async function findOnGoogleMaps(query) {
+  const items = await runActor(GOOGLE_MAPS_ACTOR, {
+    searchStringsArray: [query],
+    maxCrawledPlacesPerSearch: 1,
+    language: 'en',
+    countryCode: 'us',
+  });
+  const top = items[0];
+  if (!top?.location?.lat || !top?.location?.lng) return null;
+  return {
+    lat: top.location.lat,
+    lng: top.location.lng,
+    address: top.address ?? top.title,
+    name: top.title,
+    category: top.categoryName ?? null,
+    relevance: 1,
+  };
 }

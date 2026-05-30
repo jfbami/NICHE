@@ -44,9 +44,16 @@ export function LocationDetailsDialog({ location, open, onOpenChange, onShare }:
               <p className="text-muted-foreground">{location.description}</p>
             </div>
 
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="size-4 text-muted-foreground" />
-              <span className="font-mono">{location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}</span>
+            <div className="flex items-start gap-2 text-sm">
+              <MapPin className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="flex-1">
+                {location.address && (
+                  <div className="text-foreground">{location.address}</div>
+                )}
+                <div className="font-mono text-xs text-muted-foreground">
+                  {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                </div>
+              </div>
               <Button size="sm" variant="ghost" onClick={openInMaps} className="gap-1">
                 <ExternalLink className="size-3" />
                 Open in Maps

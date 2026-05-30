@@ -4,6 +4,7 @@ export interface BackendSpot {
   id: string;
   title: string;
   description?: string;
+  address?: string;
   lat: number;
   lng: number;
   isPublic: boolean;
@@ -12,8 +13,9 @@ export interface BackendSpot {
   photoId: string | null;
   photoUrl: string | null;
   tags: string[];
-  source: "user" | "reddit";
+  source: "user" | "reddit" | "instagram";
   redditPostUrl: string | null;
+  instagramPostUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,6 +39,7 @@ export function spotToLocation(spot: BackendSpot | BackendSpotIndexEntry): Locat
     id: spot.id,
     name: spot.title,
     description: full.description ?? "",
+    address: full.address,
     latitude: spot.lat,
     longitude: spot.lng,
     imageUrl: spot.photoUrl ?? "",
