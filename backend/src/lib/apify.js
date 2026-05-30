@@ -73,6 +73,38 @@ export async function fetchInstagramPostsByHashtags({ hashtags, resultsPerHashta
   return items.map(toInstagramPost).filter(Boolean);
 }
 
+function toTikTokItem(raw) {
+  const loc = raw.locationMeta ?? {};
+  return {
+    locationName: (loc.locationName ?? '').trim(),
+    address: (loc.address ?? '').trim(),
+    city: (loc.city ?? '').trim(),
+    playCount: raw.playCount ?? 0,
+    diggCount: raw.diggCount ?? 0,
+    shareCount: raw.shareCount ?? 0,
+    text: (raw.text ?? '').trim(),
+    videoUrl: raw.webVideoUrl ?? null,
+    hashtag: raw.searchHashtag?.name ?? null,
+  };
+}
+
+export async function fetchTikTokSpotsByHashtags({ hashtags, maxItems }) {
+  const actor = process.env.APIFY_TIKTOK_ACTOR ?? 'clockworks~free-tiktok-scraper';
+  const token = requireToken();
+  // timeout=120 gives the scraper enough runway; resultsPerPage controls per-hashtag yield
+  const url = `${APIFY_BASE}/acts/${actor}/run-sync-get-dataset-items?token=${token}&timeout=120`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hashtags, maxItems, resultsPerPage: maxItems }),
+  });
+  if (!response.ok) {
+    throw new Error(`Apify ${actor} failed: ${response.status} ${await response.text()}`);
+  }
+  const items = await response.json();
+  return items.map(toTikTokItem);
+}
+
 export async function findOnGoogleMaps(query) {
   const items = await runActor(GOOGLE_MAPS_ACTOR, {
     searchStringsArray: [query],

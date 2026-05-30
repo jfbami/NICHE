@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { writeJsonFile, updateJsonFile, uploadPhoto } from '../lib/box.js';
-import { fetchRedditPosts, fetchInstagramPostsByHashtags } from '../lib/apify.js';
+import { fetchRedditPosts, fetchInstagramPostsByHashtags, fetchTikTokSpotsByHashtags } from '../lib/apify.js';
 import { geocode } from '../lib/geocode.js';
 import { extractSpotFromPost } from '../lib/extractor.js';
 import { verifyGeocodedSpot } from '../lib/verifier.js';
+import { extractSpotFromTikTok } from '../lib/tiktokExtractor.js';
 import { newSpotId, newPhotoId } from '../utils/ids.js';
 import { asyncHandler } from '../utils/http.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -172,6 +173,105 @@ router.post(
     res.json({
       imported: created.length,
       scanned: posts.length,
+      spots: created,
+    });
+  }),
+);
+
+// ── TikTok ────────────────────────────────────────────────────────────────────
+
+const DEFAULT_TIKTOK_HASHTAGS = ['seattlespot'];
+const DEFAULT_TIKTOK_MAX_ITEMS = 50;
+const MAX_TIKTOK_ITEMS = 100;
+
+function parseTikTokInput(body) {
+  const hashtags =
+    Array.isArray(body.hashtags) && body.hashtags.length > 0
+      ? body.hashtags
+      : DEFAULT_TIKTOK_HASHTAGS;
+  return {
+    hashtags,
+    maxItems: clampLimit(body.maxItems, DEFAULT_TIKTOK_MAX_ITEMS, MAX_TIKTOK_ITEMS),
+  };
+}
+
+function hasSpecificAddress(address) {
+  // Reject bare state/country strings (no digits = no zip or street number)
+  return Boolean(address) && /\d/.test(address);
+}
+
+function engagementScore(item) {
+  return item.playCount + item.diggCount * 5 + item.shareCount * 10;
+}
+
+function deduplicateByLocation(items) {
+  const byName = new Map();
+  for (const item of items) {
+    const key = item.locationName.toLowerCase();
+    const existing = byName.get(key);
+    if (!existing || engagementScore(item) > engagementScore(existing)) {
+      byName.set(key, item);
+    }
+  }
+  return [...byName.values()].sort((a, b) => engagementScore(b) - engagementScore(a));
+}
+
+function passesTokFilter(extracted) {
+  if (!extracted) return false;
+  if (!extracted.isNicheGem) return false;
+  if (!extracted.placeName) return false;
+  if (extracted.confidence === 'low') return false;
+  return true;
+}
+
+async function tiktokItemToSpot(item, user) {
+  const extracted = await extractSpotFromTikTok(item);
+  if (!passesTokFilter(extracted)) return null;
+
+  const candidate = await geocode(item.address);
+  if (!candidate) return null;
+
+  const now = new Date().toISOString();
+  return {
+    id: newSpotId(),
+    title: extracted.placeName,
+    description: extracted.blurb ?? '',
+    address: candidate.address,
+    lat: candidate.lat,
+    lng: candidate.lng,
+    isPublic: true,
+    ownerId: user.userId,
+    ownerUsername: user.username,
+    photoId: null,
+    photoUrl: null,
+    tags: [extracted.category, extracted.neighborhood].filter(Boolean),
+    source: 'tiktok',
+    tiktokVideoUrl: item.videoUrl,
+    engagement: { plays: item.playCount, likes: item.diggCount, shares: item.shareCount },
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+router.post(
+  '/tiktok',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { hashtags, maxItems } = parseTikTokInput(req.body);
+    const raw = await fetchTikTokSpotsByHashtags({ hashtags, maxItems });
+
+    const withLocation = raw.filter((item) => item.locationName && hasSpecificAddress(item.address));
+    const ranked = deduplicateByLocation(withLocation);
+
+    const candidates = await Promise.all(
+      ranked.map((item) => tiktokItemToSpot(item, req.user).catch(() => null)),
+    );
+    const created = candidates.filter(Boolean);
+    await persistSpots(created);
+    res.json({
+      imported: created.length,
+      scanned: raw.length,
+      candidates: ranked.length,
       spots: created,
     });
   }),
