@@ -15,9 +15,10 @@ import { Plus, Search, Map, Heart, User, MapPin, Settings, Trash2, LogOut, Shiel
 import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
 import { AuthUser, readUser, clearSession, isAdminUser } from "./lib/authStorage";
-import { logout, fetchSpotById } from "./lib/api";
+import { logout, fetchSpotById, fetchFriendUploads, ApiError } from "./lib/api";
 import { spotToLocation } from "./lib/spotAdapter";
 import { useRecommendations } from "./hooks/useRecommendations";
+import { useFriends } from "./hooks/useFriends";
 
 type TabType = "map" | "explore" | "favorites" | "profile";
 
@@ -43,17 +44,7 @@ export default function App() {
   const [placementMode, setPlacementMode] = useState(false);
   const [pendingCoords, setPendingCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
-  const [friends, setFriends] = useState<Friend[]>([
-    {
-      id: "f1", username: "wanderer99", displayName: "Alex W.", status: "accepted",
-      uploads: [
-        { id: "fw1", name: "Sunrise Ridge", description: "A quiet hilltop perfect for morning coffee and watching the city wake up.", latitude: 47.6250, longitude: -122.3150, imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800", uploadedBy: "Alex W.", tags: ["sunrise", "views", "peaceful"], isPublic: true, visibility: "public" },
-        { id: "fw2", name: "The Secret Pier", description: "An old wooden dock nobody visits anymore. Great for fishing and thinking.", latitude: 47.6180, longitude: -122.3600, imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800", uploadedBy: "Alex W.", tags: ["waterfront", "hidden", "quiet"], isPublic: false, visibility: "friends" },
-      ],
-    },
-    { id: "f2", username: "hiddenspots", displayName: "Jamie L.", status: "pending_received" },
-    { id: "f3", username: "cityhiker", displayName: "Sam K.", status: "pending_sent" },
-  ]);
+  const { friends, sendRequest, accept, remove } = useFriends(currentUser !== null);
 
   const recommendedLocations = useRecommendations(locations, favoriteIds);
 
@@ -142,34 +133,42 @@ export default function App() {
     toast.success("Location deleted.");
   };
 
-  const handleSendFriendRequest = (username: string) => {
-    if (friends.some((f) => f.username === username)) {
-      toast.error("Already connected with this user.");
-      return;
+  const handleSendFriendRequest = async (username: string) => {
+    try {
+      await sendRequest(username);
+      toast.success(`Friend request sent to @${username}`);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Could not send request");
     }
-    const newFriend: Friend = {
-      id: Date.now().toString(),
-      username,
-      displayName: username,
-      status: "pending_sent",
-    };
-    setFriends((prev) => [...prev, newFriend]);
-    toast.success(`Friend request sent to @${username}`);
   };
 
-  const handleAcceptFriendRequest = (id: string) => {
-    setFriends((prev) => prev.map((f) => f.id === id ? { ...f, status: "accepted" } : f));
-    toast.success("Friend request accepted!");
+  const handleAcceptFriendRequest = async (id: string) => {
+    try {
+      await accept(id);
+      toast.success("Friend request accepted!");
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Could not accept request");
+    }
   };
 
-  const handleDeclineFriendRequest = (id: string) => {
-    setFriends((prev) => prev.filter((f) => f.id !== id));
+  const handleDeclineFriendRequest = async (id: string) => {
+    await remove(id);
     toast("Request declined.");
   };
 
-  const handleRemoveFriend = (id: string) => {
-    setFriends((prev) => prev.filter((f) => f.id !== id));
+  const handleRemoveFriend = async (id: string) => {
+    await remove(id);
     toast("Friend removed.");
+  };
+
+  const handleViewFriend = async (friend: Friend) => {
+    setSelectedFriend(friend);
+    try {
+      const uploads = await fetchFriendUploads(friend.id);
+      setSelectedFriend({ ...friend, uploads });
+    } catch {
+      // keep the friend card without uploads if the fetch fails
+    }
   };
 
   return (
@@ -530,7 +529,7 @@ export default function App() {
                 onAcceptRequest={handleAcceptFriendRequest}
                 onDeclineRequest={handleDeclineFriendRequest}
                 onRemoveFriend={handleRemoveFriend}
-                onViewProfile={(friend) => setSelectedFriend(friend)}
+                onViewProfile={handleViewFriend}
               />
             </div>
           )}

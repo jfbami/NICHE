@@ -3,7 +3,9 @@ import {
   BackendSpot,
   BackendSpotIndexEntry,
   NewSpotPayload,
+  spotToLocation,
 } from "./spotAdapter";
+import { Location } from "../types/location";
 
 const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
@@ -134,4 +136,37 @@ export function uploadPhoto(file: File): Promise<UploadedPhoto> {
 
 export function deleteSpot(id: string): Promise<void> {
   return request<void>(`/api/spots/${id}`, { method: "DELETE" });
+}
+
+export type FriendStatus = "accepted" | "pending_sent" | "pending_received";
+
+export interface FriendRecord {
+  id: string;
+  username: string;
+  displayName: string;
+  status: FriendStatus;
+}
+
+export function fetchFriends(): Promise<FriendRecord[]> {
+  return request<FriendRecord[]>("/api/users/me/friends");
+}
+
+export function sendFriendRequest(username: string): Promise<FriendRecord> {
+  return request<FriendRecord>("/api/users/me/friends/request", {
+    method: "POST",
+    body: { username },
+  });
+}
+
+export function acceptFriendRequest(friendId: string): Promise<{ id: string; status: FriendStatus }> {
+  return request(`/api/users/me/friends/${friendId}/accept`, { method: "POST" });
+}
+
+export function removeFriend(friendId: string): Promise<void> {
+  return request<void>(`/api/users/me/friends/${friendId}`, { method: "DELETE" });
+}
+
+export async function fetchFriendUploads(ownerId: string): Promise<Location[]> {
+  const entries = await fetchSpotsInBounds();
+  return entries.filter((entry) => entry.ownerId === ownerId).map(spotToLocation);
 }

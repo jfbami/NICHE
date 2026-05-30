@@ -43,7 +43,10 @@ function canSee(spot, userId, friendIds) {
 async function loadFriendIds(userId) {
   if (!userId) return [];
   try {
-    return await readJsonFile(`user_data/${userId}/friends.json`);
+    const friends = await readJsonFile(`user_data/${userId}/friends.json`);
+    return friends
+      .filter((entry) => entry.status === 'accepted')
+      .map((entry) => entry.userId);
   } catch {
     return [];
   }
