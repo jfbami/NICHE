@@ -7,6 +7,7 @@ export interface Location {
   longitude: number;
   imageUrl: string;
   uploadedBy: string;
+  ownerId?: string;
   uploadedAt: Date;
   tags: string[];
   isPublic: boolean;

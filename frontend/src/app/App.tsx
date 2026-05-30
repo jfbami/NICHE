@@ -37,7 +37,7 @@ export default function App() {
   const isAdmin = currentUser !== null && isAdminUser(currentUser);
 
   const [activeTab, setActiveTab] = useState<TabType>("map");
-  const { locations, addLocal, removeLocal } = useSpots(currentUser !== null);
+  const { locations, addLocal, removeLocal, patchLocal } = useSpots(currentUser !== null);
   const { favoriteIds, toggle: toggleFavorite } = useFavorites(currentUser !== null);
   const [searchQuery, setSearchQuery] = useState("");
   const [favoritesQuery, setFavoritesQuery] = useState("");
@@ -56,6 +56,13 @@ export default function App() {
   const { friends, sendRequest, accept, remove } = useFriends(currentUser !== null);
 
   const recommendedLocations = useRecommendations(locations, favoriteIds);
+
+  const handleToggleFavorite = (id: string) => {
+    const willFavorite = !favoriteIds.includes(id);
+    const current = locations.find((loc) => loc.id === id)?.saveCount ?? 0;
+    patchLocal(id, { saveCount: Math.max(0, current + (willFavorite ? 1 : -1)) });
+    toggleFavorite(id);
+  };
 
   if (!currentUser) {
     return (
@@ -135,12 +142,13 @@ export default function App() {
 
   const handleShare = async (location: Location) => {
     const shareUrl = `${window.location.origin}?spot=${location.id}`;
+    const shareTitle = `neesh: ${location.name}`;
     const shareText = location.description
-      ? `${location.name} — ${location.description.slice(0, 80)}`
-      : location.name;
+      ? `${shareTitle} — ${location.description.slice(0, 80)}`
+      : shareTitle;
     if (navigator.share) {
       try {
-        await navigator.share({ title: location.name, text: shareText, url: shareUrl });
+        await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
       } catch {
         // user cancelled — do nothing
       }
@@ -228,7 +236,7 @@ export default function App() {
             locations={locations}
             favoriteIds={favoriteIds}
             onViewDetails={handleViewDetails}
-            onToggleFavorite={toggleFavorite}
+            onToggleFavorite={handleToggleFavorite}
             placementMode={placementMode}
             onPlacementConfirm={(lat, lng) => {
               setPendingCoords({ lat, lng });
@@ -305,7 +313,7 @@ export default function App() {
                       onShare={handleShare}
                       onViewDetails={handleViewDetails}
                       isFavorite={favoriteIds.includes(location.id)}
-                      onToggleFavorite={() => toggleFavorite(location.id)}
+                      onToggleFavorite={() => handleToggleFavorite(location.id)}
                       canDelete={isAdmin}
                       onDelete={handleDeleteLocation}
                     />
@@ -361,7 +369,7 @@ export default function App() {
                       onShare={handleShare}
                       onViewDetails={handleViewDetails}
                       isFavorite={true}
-                      onToggleFavorite={() => toggleFavorite(location.id)}
+                      onToggleFavorite={() => handleToggleFavorite(location.id)}
                       canDelete={isAdmin}
                       onDelete={handleDeleteLocation}
                     />
@@ -634,6 +642,11 @@ export default function App() {
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}
         onShare={handleShare}
+        canDelete={
+          selectedLocation != null &&
+          (isAdmin || selectedLocation.ownerId === currentUser.id)
+        }
+        onDelete={handleDeleteLocation}
       />
       <ShareDialog
         location={selectedLocation}

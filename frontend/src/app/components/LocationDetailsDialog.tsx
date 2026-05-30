@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { MapPin, Calendar, User, Share2, ExternalLink } from "lucide-react";
+import { MapPin, Calendar, User, Share2, ExternalLink, Trash2 } from "lucide-react";
 import { Location } from "../types/location";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
@@ -10,9 +10,11 @@ interface LocationDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onShare: (location: Location) => void;
+  canDelete?: boolean;
+  onDelete?: (id: string) => void;
 }
 
-export function LocationDetailsDialog({ location, open, onOpenChange, onShare }: LocationDetailsDialogProps) {
+export function LocationDetailsDialog({ location, open, onOpenChange, onShare, canDelete, onDelete }: LocationDetailsDialogProps) {
   if (!location) return null;
 
   const openInMaps = () => {
@@ -89,11 +91,24 @@ export function LocationDetailsDialog({ location, open, onOpenChange, onShare }:
               </div>
             )}
 
-            <div className="pt-4">
+            <div className="pt-4 space-y-2">
               <Button onClick={() => onShare(location)} className="w-full gap-2">
                 <Share2 className="size-4" />
                 Share Location
               </Button>
+              {canDelete && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    onDelete?.(location.id);
+                    onOpenChange(false);
+                  }}
+                  className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/5"
+                >
+                  <Trash2 className="size-4" />
+                  Delete Spot
+                </Button>
+              )}
             </div>
           </div>
         </div>

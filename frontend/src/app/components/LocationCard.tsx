@@ -1,6 +1,6 @@
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Heart, Users, Trash2 } from "lucide-react";
+import { Heart, Users, User, Trash2 } from "lucide-react";
 import { Location } from "../types/location";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
@@ -24,6 +24,8 @@ export function LocationCard({
   onDelete,
 }: LocationCardProps) {
   const isScraped = ["reddit", "instagram", "tiktok"].includes(location.source ?? "");
+  const isUserSpot = (location.source ?? "user") === "user";
+  const likeCount = location.saveCount ?? 0;
 
   return (
     <div className="overflow-hidden rounded-2xl bg-card border border-border shadow-sm">
@@ -48,6 +50,15 @@ export function LocationCard({
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
             neesh recommended
+          </div>
+        )}
+        {isUserSpot && location.visibility !== "friends" && (
+          <div
+            className="absolute top-2 left-2 flex items-center gap-1 px-2.5 py-1 rounded-full"
+            style={{ background: "rgba(232,196,154,0.95)", color: "#2C1A0E", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.02em" }}
+          >
+            <User className="size-3" />
+            user recommended
           </div>
         )}
         {location.visibility === "friends" && !isScraped && (
@@ -97,10 +108,15 @@ export function LocationCard({
           </Button>
           <button
             onClick={onToggleFavorite}
-            className="flex items-center justify-center rounded-xl border border-border bg-background h-9"
-            style={{ width: 40 }}
+            className="flex items-center justify-center gap-1 rounded-xl border border-border bg-background h-9 px-2.5"
+            title="Like this spot"
           >
             <Heart className={`size-4 ${isFavorite ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+            {likeCount > 0 && (
+              <span className="text-xs font-medium" style={{ color: isFavorite ? "#2C1A0E" : "#9b8e82" }}>
+                {likeCount}
+              </span>
+            )}
           </button>
           <button
             onClick={() => onShare(location)}

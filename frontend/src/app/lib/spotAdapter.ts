@@ -14,9 +14,10 @@ export interface BackendSpot {
   photoUrl: string | null;
   tags: string[];
   visibility?: "public" | "friends" | "private";
-  source: "user" | "reddit" | "instagram";
+  source: "user" | "reddit" | "instagram" | "tiktok";
   redditPostUrl: string | null;
   instagramPostUrl?: string | null;
+  tiktokVideoUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -31,7 +32,7 @@ export interface BackendSpotIndexEntry {
   photoUrl: string | null;
   createdAt: string;
   saveCount?: number;
-  source?: "user" | "reddit" | "instagram";
+  source?: "user" | "reddit" | "instagram" | "tiktok";
   visibility?: "public" | "friends" | "private";
 }
 
@@ -47,6 +48,7 @@ export function spotToLocation(spot: BackendSpot | BackendSpotIndexEntry): Locat
     longitude: spot.lng,
     imageUrl: spot.photoUrl ?? "",
     uploadedBy: full.ownerUsername ?? "Someone",
+    ownerId: full.ownerId ?? indexEntry.ownerId,
     uploadedAt: new Date(spot.createdAt),
     tags: full.tags ?? [],
     isPublic: spot.isPublic,
@@ -60,6 +62,7 @@ export function spotToLocation(spot: BackendSpot | BackendSpotIndexEntry): Locat
 export interface NewSpotPayload {
   title: string;
   description: string;
+  address?: string;
   lat: number;
   lng: number;
   isPublic: boolean;
@@ -76,6 +79,7 @@ export function locationDraftToSpotPayload(
   return {
     title: draft.name,
     description: draft.description,
+    address: draft.address,
     lat: draft.latitude,
     lng: draft.longitude,
     isPublic: draft.visibility === "public",

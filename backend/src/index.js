@@ -7,6 +7,7 @@ import spotsRoutes from './routes/spots.js';
 import photosRoutes from './routes/photos.js';
 import usersRoutes from './routes/users.js';
 import seedRoutes from './routes/seed.js';
+import geocodeRoutes from './routes/geocode.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -19,6 +20,7 @@ app.use('/api/spots', spotsRoutes);
 app.use('/api/photos', photosRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/seed', seedRoutes);
+app.use('/api/geocode', geocodeRoutes);
 
 app.use(errorHandler);
 

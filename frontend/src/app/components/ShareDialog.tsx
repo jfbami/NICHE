@@ -17,8 +17,8 @@ export function ShareDialog({ location, open, onOpenChange }: ShareDialogProps) 
 
   if (!location) return null;
 
-  const shareUrl = `${window.location.origin}?location=${location.id}`;
-  const shareText = `Check out this amazing location: ${location.name}`;
+  const shareUrl = `${window.location.origin}?spot=${location.id}`;
+  const shareText = `neesh: ${location.name}`;
 
   const copyToClipboard = async () => {
     try {

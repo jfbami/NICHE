@@ -101,7 +101,7 @@ router.post(
   '/',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const { title, description, lat, lng, visibility, isPublic, photoId, photoUrl, tags } = req.body;
+    const { title, description, address, lat, lng, visibility, isPublic, photoId, photoUrl, tags } = req.body;
     if (!title || typeof lat !== 'number' || typeof lng !== 'number') {
       throw httpError(400, 'title, lat, and lng are required');
     }
@@ -116,6 +116,7 @@ router.post(
       id: newSpotId(),
       title,
       description: description || '',
+      address: address || null,
       lat,
       lng,
       visibility: resolvedVisibility,

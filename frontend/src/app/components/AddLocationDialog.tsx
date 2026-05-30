@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { X, Image as ImageIcon, Globe, Users, Lock } from "lucide-react";
+import { X, Image as ImageIcon, Globe, Users, Lock, MapPin, Loader2 } from "lucide-react";
 import { Location } from "../types/location";
+import { searchAddresses, AddressSuggestion } from "../lib/api";
 
 interface AddLocationDialogProps {
   open: boolean;
@@ -29,6 +30,46 @@ export function AddLocationDialog({ open, onOpenChange, onAddLocation, initialLa
   const [visibility, setVisibility] = useState<"public" | "friends" | "private">("public");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [address, setAddress] = useState("");
+  const [addressQuery, setAddressQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  // Seed coords from map placement mode when the dialog opens.
+  useEffect(() => {
+    if (open && initialLatitude != null && initialLongitude != null) {
+      setCoords({ lat: initialLatitude, lng: initialLongitude });
+    }
+  }, [open, initialLatitude, initialLongitude]);
+
+  // Debounced address autocomplete.
+  useEffect(() => {
+    const query = addressQuery.trim();
+    if (query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        setSuggestions(await searchAddresses(query));
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [addressQuery]);
+
+  const handleSelectSuggestion = (s: AddressSuggestion) => {
+    setCoords({ lat: s.lat, lng: s.lng });
+    setAddress(s.address);
+    setAddressQuery(s.address);
+    setSuggestions([]);
+  };
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -55,14 +96,15 @@ export function AddLocationDialog({ open, onOpenChange, onAddLocation, initialLa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name) return;
+    if (!name || !coords) return;
 
     onAddLocation(
       {
         name,
         description,
-        latitude: initialLatitude ?? 0,
-        longitude: initialLongitude ?? 0,
+        address: address || undefined,
+        latitude: coords.lat,
+        longitude: coords.lng,
         imageUrl,
         uploadedBy: isAnonymous ? "Anonymous" : profileName,
         tags,
@@ -80,6 +122,10 @@ export function AddLocationDialog({ open, onOpenChange, onAddLocation, initialLa
     setVisibility("public");
     setTags([]);
     setTagInput("");
+    setCoords(null);
+    setAddress("");
+    setAddressQuery("");
+    setSuggestions([]);
     onOpenChange(false);
   };
 
@@ -113,6 +159,55 @@ export function AddLocationDialog({ open, onOpenChange, onAddLocation, initialLa
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address">
+              Address {coords ? <span className="text-green-700 text-xs">✓ pinned</span> : <span className="text-muted-foreground text-xs">(search to set the pin)</span>}
+            </Label>
+            <div className="relative">
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  id="address"
+                  placeholder="Search an address or place..."
+                  value={addressQuery}
+                  onChange={(e) => {
+                    setAddressQuery(e.target.value);
+                    setCoords(initialLatitude != null && initialLongitude != null && e.target.value === ""
+                      ? { lat: initialLatitude, lng: initialLongitude }
+                      : null);
+                  }}
+                  className="pl-9"
+                  autoComplete="off"
+                />
+                {searching && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground animate-spin" />
+                )}
+              </div>
+              {suggestions.length > 0 && (
+                <div
+                  className="absolute z-50 mt-1 w-full rounded-xl border bg-white shadow-lg overflow-hidden"
+                  style={{ borderColor: "rgba(201,181,227,0.5)" }}
+                >
+                  {suggestions.map((s, i) => (
+                    <button
+                      key={`${s.lat}-${s.lng}-${i}`}
+                      type="button"
+                      onClick={() => handleSelectSuggestion(s)}
+                      className="w-full text-left px-3 py-2.5 hover:bg-muted/60 transition-colors flex items-start gap-2 border-b last:border-b-0"
+                      style={{ borderColor: "rgba(201,181,227,0.25)" }}
+                    >
+                      <MapPin className="size-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+                      <span className="text-sm leading-snug" style={{ color: "#2C1A0E" }}>{s.address}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {initialLatitude != null && initialLongitude != null && !addressQuery && (
+              <p className="text-xs text-muted-foreground">Using the spot you dropped on the map. Search above to override.</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -232,7 +327,7 @@ export function AddLocationDialog({ open, onOpenChange, onAddLocation, initialLa
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Upload Location</Button>
+            <Button type="submit" disabled={!name || !coords}>Upload Location</Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -10,6 +10,7 @@ export interface SpotsState {
   reload: () => Promise<void>;
   addLocal: (location: Location) => void;
   removeLocal: (id: string) => void;
+  patchLocal: (id: string, patch: Partial<Location>) => void;
 }
 
 export function useSpots(enabled: boolean): SpotsState {
@@ -43,5 +44,11 @@ export function useSpots(enabled: boolean): SpotsState {
     setLocations((prev) => prev.filter((location) => location.id !== id));
   }, []);
 
-  return { locations, loading, error, reload, addLocal, removeLocal };
+  const patchLocal = useCallback((id: string, patch: Partial<Location>) => {
+    setLocations((prev) =>
+      prev.map((location) => (location.id === id ? { ...location, ...patch } : location)),
+    );
+  }, []);
+
+  return { locations, loading, error, reload, addLocal, removeLocal, patchLocal };
 }

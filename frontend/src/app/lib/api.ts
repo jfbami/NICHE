@@ -170,3 +170,13 @@ export async function fetchFriendUploads(ownerId: string): Promise<Location[]> {
   const entries = await fetchSpotsInBounds();
   return entries.filter((entry) => entry.ownerId === ownerId).map(spotToLocation);
 }
+
+export interface AddressSuggestion {
+  address: string;
+  lat: number;
+  lng: number;
+}
+
+export function searchAddresses(query: string): Promise<AddressSuggestion[]> {
+  return request<AddressSuggestion[]>(`/api/geocode/search?q=${encodeURIComponent(query)}`);
+}
