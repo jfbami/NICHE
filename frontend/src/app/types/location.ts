@@ -9,4 +9,6 @@ export interface Location {
   uploadedAt: Date;
   tags: string[];
   isPublic: boolean;
+  visibility: "public" | "friends" | "private";
+  isRecommended?: boolean;
 }

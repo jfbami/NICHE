@@ -1,6 +1,6 @@
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Heart } from "lucide-react";
+import { Heart, Users } from "lucide-react";
 import { Location } from "../types/location";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
@@ -15,17 +15,31 @@ interface LocationCardProps {
 export function LocationCard({ location, onShare, onViewDetails, isFavorite, onToggleFavorite }: LocationCardProps) {
   return (
     <div className="overflow-hidden rounded-2xl bg-card border border-border shadow-sm">
-      <div className="relative overflow-hidden" style={{ height: 200 }}>
+      <div className="relative overflow-hidden" style={{ aspectRatio: "4/5", height: "auto" }}>
         <ImageWithFallback
           src={location.imageUrl}
           alt={location.name}
           className="w-full h-full object-cover"
         />
+        {location.isRecommended && (
+          <div className="absolute top-2 left-2 flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ background: "rgba(201,181,227,0.92)", color: "#2C1A0E", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.02em" }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#2C1A0E"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            neesh recommended
+          </div>
+        )}
+        {location.visibility === "friends" && (
+          <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 rounded-full text-white" style={{ background: "rgba(51,45,78,0.75)", fontSize: "0.68rem" }}>
+            <Users className="size-3" />
+            Friends only
+          </div>
+        )}
       </div>
       <div className="px-3 pt-2.5 pb-3">
         <p className="text-primary mb-1" style={{ fontWeight: 600, fontSize: "0.95rem", lineHeight: 1.3 }}>{location.name}</p>
-        {location.description && (
+        {location.description ? (
           <p className="text-muted-foreground line-clamp-2 mb-2" style={{ fontSize: "0.8rem", lineHeight: 1.4 }}>{location.description}</p>
+        ) : (
+          <div className="mb-2" />
         )}
         {location.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2.5">
