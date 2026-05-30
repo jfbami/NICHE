@@ -91,6 +91,17 @@ Apify scrape ──▶ pre-filter ──▶ Claude Haiku extract ──▶ geoco
 
 ---
 
+## 🧠 How the Explore feed is ranked
+
+The Explore tab is ordered by [`useRecommendations`](frontend/src/app/hooks/useRecommendations.ts) — a transparent, on-device two-signal model (no server call):
+
+1. **Taste match (70%)** — your saved spots' tags become a weighted taste profile; each candidate is scored by how many of its tags you've shown a taste for.
+2. **Popularity (30%)** — each spot's global `saveCount` (maintained server-side on every save/unsave) is blended in.
+
+Both signals are normalized to `0–1`, so a brand-new user with no saves simply sees the most-saved spots first, and the feed personalizes as they like more. Spots you've already saved (and your private spots) are excluded from "Recommended."
+
+---
+
 ## 📁 Project structure
 
 ```
@@ -181,7 +192,8 @@ NEESH_ROOT_FOLDER_ID=                      # from `npm run init-box`
 # App
 NEESH_JWT_SECRET=replace-with-long-random  # signs auth tokens
 PORT=3000
-NEESH_ADMIN_EMAILS=admin@neesh.app         # comma-separated; can delete any spot
+# Admin is the account whose email matches ADMIN_EMAIL in src/routes/auth.js
+# (neesh.admin@neesh.app) — its JWT carries isAdmin:true and can delete any spot.
 
 # Apify (Reddit + Instagram + TikTok scrapers)
 APIFY_API_TOKEN=
