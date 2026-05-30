@@ -6,7 +6,7 @@ Neesh is a mobile-first map app for the hidden gems mainstream maps miss — the
 
 Built for the **Cascadia AI Hackathon 2026**.
 
-> **Prize integrations:** Neesh uses **Box** as its entire database + file store, **Apify** to scrape hidden-gem suggestions from Reddit, Instagram & TikTok, **AWS Bedrock** (Claude Haiku) to judge and describe each scraped spot, and **AWS / Vercel** for hosting.
+> **Prize integrations:** Neesh uses **Box** as its entire database + file store, **Apify** to scrape hidden-gem suggestions from social media platforms, **AWS Bedrock** (Claude Haiku) to judge and describe each scraped spot, and **AWS / Vercel** for hosting.
 
 ---
 
