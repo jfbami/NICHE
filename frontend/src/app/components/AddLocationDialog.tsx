@@ -5,7 +5,7 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { X, Image as ImageIcon, Globe, Users, Lock, MapPin, Loader2 } from "lucide-react";
+import { X, Image as ImageIcon, Camera, Globe, Users, Lock, MapPin, Loader2 } from "lucide-react";
 import { Location } from "../types/location";
 import { searchAddresses, AddressSuggestion } from "../lib/api";
 
@@ -96,7 +96,7 @@ export function AddLocationDialog({ open, onOpenChange, onAddLocation, initialLa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !coords) return;
+    if (!name || !coords || !imageFile) return;
 
     onAddLocation(
       {
@@ -211,26 +211,46 @@ export function AddLocationDialog({ open, onOpenChange, onAddLocation, initialLa
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image">Photo <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Label>Photo <span className="text-destructive text-xs">(required)</span></Label>
             <div className="flex flex-col gap-2">
-              <label
-                htmlFor="image"
-                className="flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-8 cursor-pointer hover:bg-muted/50 transition-colors"
-              >
-                {imageUrl ? (
+              {imageUrl && (
+                <label
+                  htmlFor="image-library"
+                  className="flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                >
                   <div className="flex flex-col items-center gap-2">
                     <img src={imageUrl} alt="Preview" className="max-h-32 rounded-lg" />
                     <span className="text-sm text-muted-foreground">Tap to change photo</span>
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <ImageIcon className="size-8 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Tap to select from photo library</span>
-                  </div>
-                )}
-              </label>
+                </label>
+              )}
+              {!imageUrl && (
+                <div className="grid grid-cols-2 gap-2">
+                  <label
+                    htmlFor="image-library"
+                    className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-6 cursor-pointer hover:bg-muted/50 transition-colors"
+                  >
+                    <ImageIcon className="size-7 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Choose Photo</span>
+                  </label>
+                  <label
+                    htmlFor="image-camera"
+                    className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-6 cursor-pointer hover:bg-muted/50 transition-colors"
+                  >
+                    <Camera className="size-7 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Take Photo</span>
+                  </label>
+                </div>
+              )}
               <Input
-                id="image"
+                id="image-library"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              <Input
+                id="image-camera"
                 type="file"
                 accept="image/*"
                 capture="environment"
@@ -327,7 +347,7 @@ export function AddLocationDialog({ open, onOpenChange, onAddLocation, initialLa
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!name || !coords}>Upload Location</Button>
+            <Button type="submit" disabled={!name || !coords || !imageFile}>Upload Location</Button>
           </DialogFooter>
         </form>
       </DialogContent>

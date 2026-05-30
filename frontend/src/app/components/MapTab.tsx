@@ -21,6 +21,18 @@ interface PopupInfo {
   y: number;
 }
 
+const RADIUS_OPTIONS = [1, 5, 10, 25, 50] as const;
+
+function milesBetween(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3958.8; // Earth radius in miles
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 const NEESH_STYLE = {
   version: 8 as const,
   glyphs: "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
@@ -131,11 +143,20 @@ export function MapTab({ locations, favoriteIds, onViewDetails, onToggleFavorite
   const [popup, setPopup] = useState<PopupInfo | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Set<VisibilityFilter>>(new Set(["public", "friends", "private"]));
+  const [radiusMiles, setRadiusMiles] = useState<number | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
   setPopupRef.current = setPopup;
   flyToTargetRef.current = flyToTarget;
 
-  const filteredLocations = locations.filter((loc) => activeFilters.has(loc.visibility ?? "public"));
+  const filteredLocations = locations.filter((loc) => {
+    if (!activeFilters.has(loc.visibility ?? "public")) return false;
+    if (radiusMiles != null && userLocation) {
+      const [lng, lat] = userLocation;
+      if (milesBetween(lat, lng, loc.latitude, loc.longitude) > radiusMiles) return false;
+    }
+    return true;
+  });
   locationsRef.current = filteredLocations;
 
   const toggleFilter = (v: VisibilityFilter) => {
@@ -230,6 +251,7 @@ export function MapTab({ locations, favoriteIds, onViewDetails, onToggleFavorite
           navigator.geolocation.getCurrentPosition(
             (pos) => {
               userLocationRef.current = [pos.coords.longitude, pos.coords.latitude];
+              setUserLocation([pos.coords.longitude, pos.coords.latitude]);
               map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 15 });
               const el = document.createElement("div");
               el.style.cssText = "width:20px;height:20px;position:relative;";
@@ -260,7 +282,7 @@ export function MapTab({ locations, favoriteIds, onViewDetails, onToggleFavorite
     import("maplibre-gl").then((maplibre) => {
       addMarkers(maplibre, mapRef.current);
     });
-  }, [locations, activeFilters]);
+  }, [locations, activeFilters, radiusMiles, userLocation]);
 
   useEffect(() => {
     if (!flyToTarget || !mapRef.current) return;
@@ -388,6 +410,42 @@ export function MapTab({ locations, favoriteIds, onViewDetails, onToggleFavorite
                   </button>
                 );
               })}
+
+              <div className="px-4 py-3 border-t border-b" style={{ borderColor: "rgba(201,181,227,0.4)" }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#2C1A0E" }}>Distance</p>
+                {!userLocation && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Enable location to filter by distance</p>
+                )}
+              </div>
+              <button
+                onClick={() => setRadiusMiles(null)}
+                className="w-full flex items-center justify-between px-4 py-2.5 transition-colors hover:bg-gray-50"
+              >
+                <span className="text-sm" style={{ color: "#2C1A0E" }}>Any distance</span>
+                {radiusMiles === null && (
+                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+                    <path d="M2 6l3 3 5-5" stroke="#2C1A0E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </button>
+              {RADIUS_OPTIONS.map((miles) => {
+                const selected = radiusMiles === miles;
+                return (
+                  <button
+                    key={miles}
+                    onClick={() => setRadiusMiles(miles)}
+                    disabled={!userLocation}
+                    className="w-full flex items-center justify-between px-4 py-2.5 transition-colors hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    <span className="text-sm" style={{ color: "#2C1A0E" }}>Within {miles} {miles === 1 ? "mile" : "miles"}</span>
+                    {selected && (
+                      <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 6l3 3 5-5" stroke="#2C1A0E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -401,6 +459,7 @@ export function MapTab({ locations, favoriteIds, onViewDetails, onToggleFavorite
             } else if (mapRef.current) {
               navigator.geolocation?.getCurrentPosition((pos) => {
                 userLocationRef.current = [pos.coords.longitude, pos.coords.latitude];
+                setUserLocation([pos.coords.longitude, pos.coords.latitude]);
                 mapRef.current.flyTo({ center: userLocationRef.current, zoom: 15 });
               });
             }
