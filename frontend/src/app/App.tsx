@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { LocationCard } from "./components/LocationCard";
@@ -6,18 +6,20 @@ import { AddLocationDialog } from "./components/AddLocationDialog";
 import { LocationDetailsDialog } from "./components/LocationDetailsDialog";
 import { ShareDialog } from "./components/ShareDialog";
 import { MapTab } from "./components/MapTab";
+import { AuthScreen } from "./components/AuthScreen";
 import { Location } from "./types/location";
-import { mockLocations } from "./data/mockData";
-import { Plus, Search, Map, Heart, User, MapPin } from "lucide-react";
+import { useSpots } from "./hooks/useSpots";
+import { useFavorites } from "./hooks/useFavorites";
+import { AuthUser, clearSession, readUser } from "./lib/authStorage";
+import { Plus, Search, Map, Heart, User, MapPin, LogOut } from "lucide-react";
 import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
 
 type TabType = "map" | "explore" | "favorites" | "profile";
 
 export default function App() {
+  const [authUser, setAuthUser] = useState<AuthUser | null>(() => readUser());
   const [activeTab, setActiveTab] = useState<TabType>("map");
-  const [locations, setLocations] = useState<Location[]>(mockLocations);
-  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -26,23 +28,105 @@ export default function App() {
   const [placementMode, setPlacementMode] = useState(false);
   const [pendingCoords, setPendingCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  const filteredLocations = locations.filter(
-    (location) =>
-      location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      location.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      location.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+  if (!authUser) {
+    return (
+      <div className="h-screen bg-background flex flex-col" style={{ maxWidth: 430, margin: "0 auto" }}>
+        <Toaster />
+        <AuthScreen onAuthenticated={setAuthUser} />
+      </div>
+    );
+  }
+
+  return (
+    <AuthenticatedApp
+      authUser={authUser}
+      onSignOut={() => {
+        clearSession();
+        setAuthUser(null);
+      }}
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      addDialogOpen={addDialogOpen}
+      setAddDialogOpen={setAddDialogOpen}
+      detailsDialogOpen={detailsDialogOpen}
+      setDetailsDialogOpen={setDetailsDialogOpen}
+      shareDialogOpen={shareDialogOpen}
+      setShareDialogOpen={setShareDialogOpen}
+      selectedLocation={selectedLocation}
+      setSelectedLocation={setSelectedLocation}
+      placementMode={placementMode}
+      setPlacementMode={setPlacementMode}
+      pendingCoords={pendingCoords}
+      setPendingCoords={setPendingCoords}
+    />
   );
+}
+
+interface AuthenticatedAppProps {
+  authUser: AuthUser;
+  onSignOut: () => void;
+  activeTab: TabType;
+  setActiveTab: (tab: TabType) => void;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
+  addDialogOpen: boolean;
+  setAddDialogOpen: (open: boolean) => void;
+  detailsDialogOpen: boolean;
+  setDetailsDialogOpen: (open: boolean) => void;
+  shareDialogOpen: boolean;
+  setShareDialogOpen: (open: boolean) => void;
+  selectedLocation: Location | null;
+  setSelectedLocation: (location: Location | null) => void;
+  placementMode: boolean;
+  setPlacementMode: (mode: boolean) => void;
+  pendingCoords: { lat: number; lng: number } | null;
+  setPendingCoords: (coords: { lat: number; lng: number } | null) => void;
+}
+
+function AuthenticatedApp({
+  authUser,
+  onSignOut,
+  activeTab,
+  setActiveTab,
+  searchQuery,
+  setSearchQuery,
+  addDialogOpen,
+  setAddDialogOpen,
+  detailsDialogOpen,
+  setDetailsDialogOpen,
+  shareDialogOpen,
+  setShareDialogOpen,
+  selectedLocation,
+  setSelectedLocation,
+  placementMode,
+  setPlacementMode,
+  pendingCoords,
+  setPendingCoords,
+}: AuthenticatedAppProps) {
+  const { locations, loading, error, reload, addLocal } = useSpots();
+  const { favoriteIds, toggle: toggleFavorite } = useFavorites();
+
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
+
+  const filteredLocations = locations.filter((location) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      location.name.toLowerCase().includes(query) ||
+      location.description.toLowerCase().includes(query) ||
+      location.tags.some((tag) => tag.toLowerCase().includes(query))
+    );
+  });
 
   const favoriteLocations = locations.filter((loc) => favoriteIds.includes(loc.id));
 
-  const handleAddLocation = (newLocation: Omit<Location, "id" | "uploadedAt">) => {
-    const location: Location = {
-      ...newLocation,
-      id: Date.now().toString(),
-      uploadedAt: new Date(),
-    };
-    setLocations([location, ...locations]);
-    toast.success("Location uploaded successfully!");
+  const handleSpotCreated = (location: Location) => {
+    addLocal(location);
+    toast.success("Spot added!");
+    reload();
   };
 
   const handleViewDetails = (location: Location) => {
@@ -55,28 +139,23 @@ export default function App() {
     setShareDialogOpen(true);
   };
 
-  const toggleFavorite = (locationId: string) => {
-    setFavoriteIds((prev) =>
-      prev.includes(locationId)
-        ? prev.filter((id) => id !== locationId)
-        : [...prev, locationId]
-    );
-  };
-
   return (
     <div className="h-screen bg-background flex flex-col" style={{ maxWidth: 430, margin: "0 auto" }}>
       <Toaster />
 
-      {/* Header */}
       <header className="border-b bg-background z-10 shadow-sm shrink-0">
-        <div className="px-4 py-3">
-          <div className="flex items-center">
-            <h1 className="text-3xl logo-font text-primary tracking-wide">neesh</h1>
-          </div>
+        <div className="px-4 py-3 flex items-center justify-between">
+          <h1 className="text-3xl logo-font text-primary tracking-wide">neesh</h1>
+          <button
+            onClick={onSignOut}
+            className="text-muted-foreground hover:text-primary"
+            aria-label="Sign out"
+          >
+            <LogOut className="size-5" />
+          </button>
         </div>
       </header>
 
-      {/* Map Tab — full bleed */}
       {activeTab === "map" && (
         <div className="flex-1 relative overflow-hidden">
           <MapTab
@@ -95,120 +174,123 @@ export default function App() {
         </div>
       )}
 
-      {/* Scrollable tabs */}
       {activeTab !== "map" && (
-      <main className="flex-1 overflow-y-auto px-3 py-3 pb-3">
-        {activeTab === "explore" && (
-          <>
-            {/* Search Bar */}
-            <div className="mb-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search locations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-11"
-                />
+        <main className="flex-1 overflow-y-auto px-3 py-3 pb-3">
+          {activeTab === "explore" && (
+            <>
+              <div className="mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search spots..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-11"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Section Title */}
-            <div className="mb-4">
-              <h3 className="font-semibold text-primary">
-                {searchQuery ? `Search Results (${filteredLocations.length})` : "All Locations"}
-              </h3>
-            </div>
+              <div className="mb-4">
+                <h3 className="font-semibold text-primary">
+                  {searchQuery ? `Search Results (${filteredLocations.length})` : "All Spots"}
+                </h3>
+              </div>
 
-            {/* Locations Grid */}
-            {filteredLocations.length === 0 ? (
-              <div className="text-center py-12">
-                <MapPin className="size-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="font-semibold mb-1">No locations found</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Try a different search or add one!
-                </p>
-                <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
-                  <Plus className="size-4" />
-                  Add Location
+              {loading && (
+                <p className="text-center text-sm text-muted-foreground py-8">Loading spots...</p>
+              )}
+
+              {!loading && filteredLocations.length === 0 ? (
+                <div className="text-center py-12">
+                  <MapPin className="size-12 text-muted-foreground mx-auto mb-3" />
+                  <h3 className="font-semibold mb-1">No spots found</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Try a different search or add one!
+                  </p>
+                  <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
+                    <Plus className="size-4" />
+                    Add Spot
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 pb-2">
+                  {filteredLocations.map((location) => (
+                    <LocationCard
+                      key={location.id}
+                      location={location}
+                      onShare={handleShare}
+                      onViewDetails={handleViewDetails}
+                      isFavorite={favoriteIds.includes(location.id)}
+                      onToggleFavorite={() => toggleFavorite(location.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {activeTab === "favorites" && (
+            <>
+              <h2 className="mb-4 text-primary">Your Favorites</h2>
+              {favoriteLocations.length === 0 ? (
+                <div className="text-center py-12">
+                  <Heart className="size-12 text-muted-foreground mx-auto mb-3" />
+                  <h3 className="font-semibold mb-1">No favorites yet</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Tap the heart icon on spots to save them here
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3">
+                  {favoriteLocations.map((location) => (
+                    <LocationCard
+                      key={location.id}
+                      location={location}
+                      onShare={handleShare}
+                      onViewDetails={handleViewDetails}
+                      isFavorite={true}
+                      onToggleFavorite={() => toggleFavorite(location.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {activeTab === "profile" && (
+            <div className="py-8">
+              <div className="text-center mb-6">
+                <div className="w-20 h-20 bg-accent rounded-full mx-auto mb-3 flex items-center justify-center">
+                  <User className="size-10 text-primary" />
+                </div>
+                <h2 className="mb-1 text-primary">{authUser.username}</h2>
+                <p className="text-sm text-muted-foreground">{authUser.email}</p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-card border rounded-xl p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Spots Saved</span>
+                    <span className="font-semibold text-primary">{favoriteLocations.length}</span>
+                  </div>
+                </div>
+                <div className="bg-card border rounded-xl p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Total Spots Visible</span>
+                    <span className="font-semibold text-primary">{locations.length}</span>
+                  </div>
+                </div>
+                <Button onClick={onSignOut} variant="outline" className="w-full gap-2 mt-4">
+                  <LogOut className="size-4" />
+                  Sign out
                 </Button>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 pb-2">
-                {filteredLocations.map((location) => (
-                  <LocationCard
-                    key={location.id}
-                    location={location}
-                    onShare={handleShare}
-                    onViewDetails={handleViewDetails}
-                    isFavorite={favoriteIds.includes(location.id)}
-                    onToggleFavorite={() => toggleFavorite(location.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {activeTab === "favorites" && (
-          <>
-            <h2 className="mb-4 text-primary">Your Favorites</h2>
-            {favoriteLocations.length === 0 ? (
-              <div className="text-center py-12">
-                <Heart className="size-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="font-semibold mb-1">No favorites yet</h3>
-                <p className="text-sm text-muted-foreground">
-                  Tap the heart icon on locations to save them here
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3">
-                {favoriteLocations.map((location) => (
-                  <LocationCard
-                    key={location.id}
-                    location={location}
-                    onShare={handleShare}
-                    onViewDetails={handleViewDetails}
-                    isFavorite={true}
-                    onToggleFavorite={() => toggleFavorite(location.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {activeTab === "profile" && (
-          <div className="py-8">
-            <div className="text-center mb-6">
-              <div className="w-20 h-20 bg-accent rounded-full mx-auto mb-3 flex items-center justify-center">
-                <User className="size-10 text-primary" />
-              </div>
-              <h2 className="mb-1 text-primary">Welcome</h2>
-              <p className="text-sm text-muted-foreground">Location Explorer</p>
             </div>
-
-            <div className="space-y-3">
-              <div className="bg-card border rounded-xl p-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Locations Saved</span>
-                  <span className="font-semibold text-primary">{favoriteLocations.length}</span>
-                </div>
-              </div>
-              <div className="bg-card border rounded-xl p-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Total Locations</span>
-                  <span className="font-semibold text-primary">{locations.length}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
+          )}
+        </main>
       )}
 
-      {/* Bottom Tab Navigation */}
       <nav className="bg-background border-t z-20 shrink-0">
         <div className="flex items-center h-16">
           <button
@@ -265,11 +347,13 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Dialogs */}
       <AddLocationDialog
         open={addDialogOpen}
-        onOpenChange={(open) => { setAddDialogOpen(open); if (!open) setPendingCoords(null); }}
-        onAddLocation={handleAddLocation}
+        onOpenChange={(open) => {
+          setAddDialogOpen(open);
+          if (!open) setPendingCoords(null);
+        }}
+        onSpotCreated={handleSpotCreated}
         initialLatitude={pendingCoords?.lat}
         initialLongitude={pendingCoords?.lng}
       />
