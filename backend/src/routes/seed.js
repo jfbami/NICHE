@@ -5,6 +5,7 @@ import { geocode } from '../lib/geocode.js';
 import { newSpotId } from '../utils/ids.js';
 import { asyncHandler } from '../utils/http.js';
 import { requireAuth } from '../middleware/auth.js';
+import { toIndexEntry } from '../lib/spotIndex.js';
 
 const router = Router();
 
@@ -17,19 +18,6 @@ function parseSeedInput(body) {
   const limitRaw = Number(body.limit) || DEFAULT_LIMIT;
   const limit = Math.min(Math.max(limitRaw, 1), MAX_LIMIT);
   return { query, limit };
-}
-
-function toIndexEntry(spot) {
-  return {
-    id: spot.id,
-    title: spot.title,
-    lat: spot.lat,
-    lng: spot.lng,
-    isPublic: spot.isPublic,
-    ownerId: spot.ownerId,
-    photoUrl: spot.photoUrl,
-    createdAt: spot.createdAt,
-  };
 }
 
 async function postToSpot(post, user) {

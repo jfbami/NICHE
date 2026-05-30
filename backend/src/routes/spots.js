@@ -8,21 +8,9 @@ import {
 import { newSpotId } from '../utils/ids.js';
 import { httpError, asyncHandler } from '../utils/http.js';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
+import { toIndexEntry } from '../lib/spotIndex.js';
 
 const router = Router();
-
-function toIndexEntry(spot) {
-  return {
-    id: spot.id,
-    title: spot.title,
-    lat: spot.lat,
-    lng: spot.lng,
-    isPublic: spot.isPublic,
-    ownerId: spot.ownerId,
-    photoUrl: spot.photoUrl,
-    createdAt: spot.createdAt,
-  };
-}
 
 function canSee(spot, userId, friendIds) {
   return spot.isPublic || spot.ownerId === userId || friendIds.includes(spot.ownerId);

@@ -9,3 +9,4 @@ box_config.json
 .DS_Store
 .vite/
 .claude/settings.local.json
+*.make
