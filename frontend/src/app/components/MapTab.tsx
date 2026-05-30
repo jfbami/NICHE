@@ -129,6 +129,28 @@ const NEESH_STYLE = {
       filter: ["==", "class", "motorway"],
       paint: { "line-color": "#ede3d8", "line-width": 4 },
     },
+    {
+      id: "road-label",
+      type: "symbol" as const,
+      source: "openmaptiles",
+      "source-layer": "transportation_name",
+      minzoom: 14,
+      layout: {
+        "symbol-placement": "line" as const,
+        "text-field": ["get", "name"] as any,
+        "text-font": ["Noto Sans Regular"],
+        "text-size": 11,
+        "text-letter-spacing": 0.04,
+        "text-max-angle": 30,
+        "text-padding": 2,
+      },
+      paint: {
+        "text-color": "#5a4632",
+        "text-halo-color": "#faf7f4",
+        "text-halo-width": 1.4,
+        "text-halo-blur": 0.5,
+      },
+    },
   ],
 };
 
