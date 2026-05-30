@@ -3,7 +3,6 @@ import { Location } from "../types/location";
 
 const TAG_WEIGHT = 0.7;
 const POPULARITY_WEIGHT = 0.3;
-const BADGE_COUNT = 3;
 
 type TasteProfile = Map<string, number>;
 
@@ -38,7 +37,7 @@ function rankByTaste(pool: Location[], profile: TasteProfile): Location[] {
         POPULARITY_WEIGHT * ((location.saveCount ?? 0) / maxSaves),
     }))
     .sort((a, b) => b.score - a.score)
-    .map(({ location }, rank) => ({ ...location, isRecommended: rank < BADGE_COUNT }));
+    .map(({ location }) => location);
 }
 
 export function useRecommendations(

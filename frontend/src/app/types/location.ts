@@ -11,6 +11,6 @@ export interface Location {
   tags: string[];
   isPublic: boolean;
   visibility: "public" | "friends" | "private";
-  isRecommended?: boolean;
+  source?: "user" | "reddit" | "instagram";
   saveCount?: number;
 }

@@ -106,6 +106,7 @@ export default function App() {
       ...newLocation,
       id: Date.now().toString(),
       uploadedAt: new Date(),
+      source: "user",
     };
     setLocations((prev) => [location, ...prev]);
     toast.success("Location uploaded successfully!");

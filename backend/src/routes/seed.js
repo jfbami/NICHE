@@ -58,6 +58,8 @@ function toIndexEntry(spot) {
     ownerId: spot.ownerId,
     photoUrl: spot.photoUrl,
     createdAt: spot.createdAt,
+    source: spot.source ?? 'user',
+    saveCount: 0,
   };
 }
 

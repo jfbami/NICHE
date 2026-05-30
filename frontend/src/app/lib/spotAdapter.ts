@@ -30,6 +30,7 @@ export interface BackendSpotIndexEntry {
   photoUrl: string | null;
   createdAt: string;
   saveCount?: number;
+  source?: "user" | "reddit" | "instagram";
 }
 
 export function spotToLocation(spot: BackendSpot | BackendSpotIndexEntry): Location {
@@ -49,6 +50,7 @@ export function spotToLocation(spot: BackendSpot | BackendSpotIndexEntry): Locat
     isPublic: spot.isPublic,
     visibility: spot.isPublic ? "public" : "friends",
     saveCount: indexEntry.saveCount ?? 0,
+    source: full.source ?? indexEntry.source ?? "user",
   };
 }
 

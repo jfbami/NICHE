@@ -23,6 +23,8 @@ export function LocationCard({
   canDelete,
   onDelete,
 }: LocationCardProps) {
+  const isScraped = location.source === "reddit" || location.source === "instagram";
+
   return (
     <div className="overflow-hidden rounded-2xl bg-card border border-border shadow-sm">
       <div className="relative overflow-hidden" style={{ aspectRatio: "4/5", height: "auto" }}>
@@ -31,7 +33,7 @@ export function LocationCard({
           alt={location.name}
           className="w-full h-full object-cover"
         />
-        {location.isRecommended && (
+        {isScraped && (
           <div
             className="absolute top-2 left-2 flex items-center gap-1 px-2.5 py-1 rounded-full"
             style={{ background: "rgba(201,181,227,0.92)", color: "#2C1A0E", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.02em" }}
@@ -42,7 +44,7 @@ export function LocationCard({
             neesh recommended
           </div>
         )}
-        {location.visibility === "friends" && !location.isRecommended && (
+        {location.visibility === "friends" && !isScraped && (
           <div
             className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 rounded-full text-white"
             style={{ background: "rgba(51,45,78,0.75)", fontSize: "0.68rem" }}

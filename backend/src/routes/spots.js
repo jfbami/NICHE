@@ -21,6 +21,7 @@ function toIndexEntry(spot, saveCount = 0) {
     ownerId: spot.ownerId,
     photoUrl: spot.photoUrl,
     createdAt: spot.createdAt,
+    source: spot.source ?? 'user',
     saveCount,
   };
 }

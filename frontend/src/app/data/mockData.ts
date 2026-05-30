@@ -14,6 +14,7 @@ export const mockLocations: Location[] = [
     isPublic: true,
     visibility: "public",
     saveCount: 12,
+    source: "reddit",
   },
   {
     id: "2",
@@ -28,6 +29,7 @@ export const mockLocations: Location[] = [
     isPublic: true,
     visibility: "public",
     saveCount: 24,
+    source: "instagram",
   },
   {
     id: "3",
@@ -42,6 +44,7 @@ export const mockLocations: Location[] = [
     isPublic: true,
     visibility: "public",
     saveCount: 7,
+    source: "user",
   },
   {
     id: "4",
@@ -56,6 +59,7 @@ export const mockLocations: Location[] = [
     isPublic: true,
     visibility: "public",
     saveCount: 15,
+    source: "reddit",
   },
   {
     id: "5",
@@ -70,6 +74,7 @@ export const mockLocations: Location[] = [
     isPublic: true,
     visibility: "public",
     saveCount: 19,
+    source: "user",
   },
   {
     id: "6",
@@ -84,5 +89,6 @@ export const mockLocations: Location[] = [
     isPublic: true,
     visibility: "public",
     saveCount: 9,
+    source: "instagram",
   },
 ];
