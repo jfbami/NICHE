@@ -10,6 +10,7 @@
     "init-box": "node src/scripts/initBox.js"
   },
   "dependencies": {
+    "@anthropic-ai/bedrock-sdk": "^0.29.2",
     "bcryptjs": "^2.4.3",
     "box-node-sdk": "^3.6.0",
     "cors": "^2.8.5",
