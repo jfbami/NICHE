@@ -11,6 +11,11 @@ import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
 
+function visibilityOf(spot) {
+  if (spot.visibility) return spot.visibility;
+  return spot.isPublic ? 'public' : 'friends';
+}
+
 function toIndexEntry(spot, saveCount = 0) {
   return {
     id: spot.id,
@@ -18,6 +23,7 @@ function toIndexEntry(spot, saveCount = 0) {
     lat: spot.lat,
     lng: spot.lng,
     isPublic: spot.isPublic,
+    visibility: visibilityOf(spot),
     ownerId: spot.ownerId,
     photoUrl: spot.photoUrl,
     createdAt: spot.createdAt,
@@ -37,7 +43,11 @@ function adjustSaveCount(spotId, delta) {
 }
 
 function canSee(spot, userId, friendIds) {
-  return spot.isPublic || spot.ownerId === userId || friendIds.includes(spot.ownerId);
+  const visibility = visibilityOf(spot);
+  if (visibility === 'public') return true;
+  if (spot.ownerId === userId) return true;
+  if (visibility === 'friends') return friendIds.includes(spot.ownerId);
+  return false;
 }
 
 async function loadFriendIds(userId) {
@@ -77,11 +87,12 @@ function inBounds(spot, bounds) {
 }
 
 function applyUpdates(spot, body) {
-  const editable = ['title', 'description', 'isPublic', 'tags', 'lat', 'lng', 'photoId', 'photoUrl'];
+  const editable = ['title', 'description', 'visibility', 'tags', 'lat', 'lng', 'photoId', 'photoUrl'];
   const updated = { ...spot };
   for (const field of editable) {
     if (body[field] !== undefined) updated[field] = body[field];
   }
+  updated.isPublic = visibilityOf(updated) === 'public';
   updated.updatedAt = new Date().toISOString();
   return updated;
 }
@@ -90,10 +101,16 @@ router.post(
   '/',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const { title, description, lat, lng, isPublic, photoId, photoUrl, tags } = req.body;
+    const { title, description, lat, lng, visibility, isPublic, photoId, photoUrl, tags } = req.body;
     if (!title || typeof lat !== 'number' || typeof lng !== 'number') {
       throw httpError(400, 'title, lat, and lng are required');
     }
+    const allowedVisibility = ['public', 'friends', 'private'];
+    const resolvedVisibility = allowedVisibility.includes(visibility)
+      ? visibility
+      : isPublic === false
+        ? 'friends'
+        : 'public';
     const now = new Date().toISOString();
     const spot = {
       id: newSpotId(),
@@ -101,7 +118,8 @@ router.post(
       description: description || '',
       lat,
       lng,
-      isPublic: isPublic !== false,
+      visibility: resolvedVisibility,
+      isPublic: resolvedVisibility === 'public',
       ownerId: req.user.userId,
       ownerUsername: req.user.username,
       photoId: photoId || null,
@@ -179,7 +197,9 @@ router.delete(
   requireAuth,
   asyncHandler(async (req, res) => {
     const spot = await readSpotOr404(req.params.id);
-    if (spot.ownerId !== req.user.userId) throw httpError(403, 'not your spot');
+    if (spot.ownerId !== req.user.userId && !req.user.isAdmin) {
+      throw httpError(403, 'not your spot');
+    }
     await deleteFile(`spots/${spot.id}.json`);
     await updateJsonFile('spots_index.json', (index) =>
       index.filter((entry) => entry.id !== spot.id),

@@ -9,14 +9,16 @@ export interface SpotsState {
   error: string | null;
   reload: () => Promise<void>;
   addLocal: (location: Location) => void;
+  removeLocal: (id: string) => void;
 }
 
-export function useSpots(): SpotsState {
+export function useSpots(enabled: boolean): SpotsState {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
+    if (!enabled) return;
     setLoading(true);
     setError(null);
     try {
@@ -27,7 +29,7 @@ export function useSpots(): SpotsState {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     reload();
@@ -37,5 +39,9 @@ export function useSpots(): SpotsState {
     setLocations((prev) => [location, ...prev]);
   }, []);
 
-  return { locations, loading, error, reload, addLocal };
+  const removeLocal = useCallback((id: string) => {
+    setLocations((prev) => prev.filter((location) => location.id !== id));
+  }, []);
+
+  return { locations, loading, error, reload, addLocal, removeLocal };
 }

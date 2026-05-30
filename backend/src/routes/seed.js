@@ -59,6 +59,7 @@ function toIndexEntry(spot) {
     photoUrl: spot.photoUrl,
     createdAt: spot.createdAt,
     source: spot.source ?? 'user',
+    visibility: spot.visibility ?? (spot.isPublic ? 'public' : 'friends'),
     saveCount: 0,
   };
 }

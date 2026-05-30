@@ -11,7 +11,10 @@ import { Location } from "../types/location";
 interface AddLocationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddLocation: (location: Omit<Location, "id" | "uploadedAt">) => void;
+  onAddLocation: (
+    location: Omit<Location, "id" | "uploadedAt">,
+    imageFile: File | null,
+  ) => void | Promise<void>;
   initialLatitude?: number;
   initialLongitude?: number;
   profileName?: string;
@@ -54,17 +57,20 @@ export function AddLocationDialog({ open, onOpenChange, onAddLocation, initialLa
     e.preventDefault();
     if (!name || !imageUrl) return;
 
-    onAddLocation({
-      name,
-      description,
-      latitude: initialLatitude ?? 0,
-      longitude: initialLongitude ?? 0,
-      imageUrl,
-      uploadedBy: isAnonymous ? "Anonymous" : profileName,
-      tags,
-      isPublic: visibility === "public",
-      visibility,
-    });
+    onAddLocation(
+      {
+        name,
+        description,
+        latitude: initialLatitude ?? 0,
+        longitude: initialLongitude ?? 0,
+        imageUrl,
+        uploadedBy: isAnonymous ? "Anonymous" : profileName,
+        tags,
+        isPublic: visibility === "public",
+        visibility,
+      },
+      imageFile,
+    );
 
     setName("");
     setDescription("");

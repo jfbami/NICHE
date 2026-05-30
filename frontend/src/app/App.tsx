@@ -10,15 +10,24 @@ import { FriendProfileSheet } from "./components/FriendProfileSheet";
 import { AuthScreen } from "./components/AuthScreen";
 import { Location } from "./types/location";
 import { Friend } from "./types/friend";
-import { mockLocations } from "./data/mockData";
 import { Plus, Search, Map, Heart, User, MapPin, Settings, Trash2, LogOut, ShieldCheck } from "lucide-react";
 import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
 import { AuthUser, readUser, clearSession, isAdminUser } from "./lib/authStorage";
-import { logout, fetchSpotById, fetchFriendUploads, ApiError } from "./lib/api";
-import { spotToLocation } from "./lib/spotAdapter";
+import {
+  logout,
+  fetchSpotById,
+  fetchFriendUploads,
+  uploadPhoto,
+  createSpot,
+  deleteSpot,
+  ApiError,
+} from "./lib/api";
+import { spotToLocation, locationDraftToSpotPayload } from "./lib/spotAdapter";
 import { useRecommendations } from "./hooks/useRecommendations";
 import { useFriends } from "./hooks/useFriends";
+import { useSpots } from "./hooks/useSpots";
+import { useFavorites } from "./hooks/useFavorites";
 
 type TabType = "map" | "explore" | "favorites" | "profile";
 
@@ -28,8 +37,8 @@ export default function App() {
   const isAdmin = currentUser !== null && isAdminUser(currentUser);
 
   const [activeTab, setActiveTab] = useState<TabType>("map");
-  const [locations, setLocations] = useState<Location[]>(mockLocations);
-  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const { locations, addLocal, removeLocal } = useSpots(currentUser !== null);
+  const { favoriteIds, toggle: toggleFavorite } = useFavorites(currentUser !== null);
   const [searchQuery, setSearchQuery] = useState("");
   const [favoritesQuery, setFavoritesQuery] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -92,15 +101,25 @@ export default function App() {
       loc.tags.some((tag) => tag.toLowerCase().includes(favoritesQuery.toLowerCase()))
   );
 
-  const handleAddLocation = (newLocation: Omit<Location, "id" | "uploadedAt">) => {
-    const location: Location = {
-      ...newLocation,
-      id: Date.now().toString(),
-      uploadedAt: new Date(),
-      source: "user",
-    };
-    setLocations((prev) => [location, ...prev]);
-    toast.success("Location uploaded successfully!");
+  const handleAddLocation = async (
+    draft: Omit<Location, "id" | "uploadedAt">,
+    imageFile: File | null,
+  ) => {
+    try {
+      let photo: { photoId: string | null; photoUrl: string | null } = {
+        photoId: null,
+        photoUrl: null,
+      };
+      if (imageFile) {
+        const uploaded = await uploadPhoto(imageFile);
+        photo = { photoId: uploaded.photoId, photoUrl: uploaded.url };
+      }
+      const created = await createSpot(locationDraftToSpotPayload(draft, photo));
+      addLocal(spotToLocation(created));
+      toast.success("Location uploaded successfully!");
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Could not upload location");
+    }
   };
 
   const handleViewDetails = async (location: Location) => {
@@ -119,18 +138,14 @@ export default function App() {
     setShareDialogOpen(true);
   };
 
-  const toggleFavorite = (locationId: string) => {
-    setFavoriteIds((prev) =>
-      prev.includes(locationId)
-        ? prev.filter((id) => id !== locationId)
-        : [...prev, locationId]
-    );
-  };
-
-  const handleDeleteLocation = (id: string) => {
-    setLocations((prev) => prev.filter((l) => l.id !== id));
-    setFavoriteIds((prev) => prev.filter((fid) => fid !== id));
-    toast.success("Location deleted.");
+  const handleDeleteLocation = async (id: string) => {
+    try {
+      await deleteSpot(id);
+      removeLocal(id);
+      toast.success("Location deleted.");
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Could not delete location");
+    }
   };
 
   const handleSendFriendRequest = async (username: string) => {

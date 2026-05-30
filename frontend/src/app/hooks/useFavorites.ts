@@ -8,11 +8,12 @@ export interface FavoritesState {
   reload: () => Promise<void>;
 }
 
-export function useFavorites(): FavoritesState {
+export function useFavorites(enabled: boolean): FavoritesState {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const reload = useCallback(async () => {
+    if (!enabled) return;
     setLoading(true);
     try {
       const saved = await fetchSavedSpots();
@@ -20,7 +21,7 @@ export function useFavorites(): FavoritesState {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     reload();

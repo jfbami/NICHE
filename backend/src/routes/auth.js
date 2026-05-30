@@ -8,10 +8,14 @@ import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
+const ADMIN_EMAIL = 'neesh.admin@neesh.app';
+
 function signToken(user) {
-  return jwt.sign({ userId: user.id, username: user.username }, process.env.NEESH_JWT_SECRET, {
-    expiresIn: '7d',
-  });
+  return jwt.sign(
+    { userId: user.id, username: user.username, isAdmin: user.email === ADMIN_EMAIL },
+    process.env.NEESH_JWT_SECRET,
+    { expiresIn: '7d' },
+  );
 }
 
 function toPublicUser(user) {
