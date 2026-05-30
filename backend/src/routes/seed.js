@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { writeJsonFile, updateJsonFile, uploadPhoto } from '../lib/box.js';
+import { writeJsonFile, updateJsonFile, uploadPhoto, readJsonFile } from '../lib/box.js';
 import { fetchRedditPosts, fetchInstagramPostsByHashtags, fetchTikTokSpotsByHashtags } from '../lib/apify.js';
 import { geocode } from '../lib/geocode.js';
 import { extractSpotFromPost } from '../lib/extractor.js';
@@ -216,6 +216,22 @@ function deduplicateByLocation(items) {
   return [...byName.values()].sort((a, b) => engagementScore(b) - engagementScore(a));
 }
 
+function metersApart(lat1, lng1, lat2, lng2) {
+  const R = 6_371_000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function isTooCloseToExisting(candidate, existingSpots, thresholdMeters = 150) {
+  return existingSpots.some(
+    (s) => metersApart(s.lat, s.lng, candidate.lat, candidate.lng) < thresholdMeters,
+  );
+}
+
 function passesTokFilter(extracted) {
   if (!extracted) return false;
   if (!extracted.isNicheGem) return false;
@@ -224,12 +240,14 @@ function passesTokFilter(extracted) {
   return true;
 }
 
-async function tiktokItemToSpot(item, user) {
+async function tiktokItemToSpot(item, user, existingSpots) {
   const extracted = await extractSpotFromTikTok(item);
   if (!passesTokFilter(extracted)) return null;
 
   const candidate = await geocode(item.address);
   if (!candidate) return null;
+
+  if (isTooCloseToExisting(candidate, existingSpots)) return null;
 
   const now = new Date().toISOString();
   return {
@@ -258,15 +276,24 @@ router.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const { hashtags, maxItems } = parseTikTokInput(req.body);
+
+    const existingIndex = await readJsonFile('spots_index.json');
     const raw = await fetchTikTokSpotsByHashtags({ hashtags, maxItems });
 
     const withLocation = raw.filter((item) => item.locationName && hasSpecificAddress(item.address));
     const ranked = deduplicateByLocation(withLocation);
 
-    const candidates = await Promise.all(
-      ranked.map((item) => tiktokItemToSpot(item, req.user).catch(() => null)),
-    );
-    const created = candidates.filter(Boolean);
+    // Build up the "already placed" list as we go so each new spot within this
+    // batch also blocks spots that would land on top of it.
+    const placed = [...existingIndex];
+    const created = [];
+    for (const item of ranked) {
+      const spot = await tiktokItemToSpot(item, req.user, placed).catch(() => null);
+      if (!spot) continue;
+      placed.push({ lat: spot.lat, lng: spot.lng });
+      created.push(spot);
+    }
+
     await persistSpots(created);
     res.json({
       imported: created.length,
