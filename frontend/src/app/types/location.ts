@@ -11,6 +11,6 @@ export interface Location {
   tags: string[];
   isPublic: boolean;
   visibility: "public" | "friends" | "private";
-  source?: "user" | "reddit" | "instagram";
+  source?: "user" | "reddit" | "instagram" | "tiktok";
   saveCount?: number;
 }

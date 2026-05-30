@@ -219,7 +219,6 @@ export function MapTab({ locations, favoriteIds, onViewDetails, onToggleFavorite
       });
 
       map.addControl(new maplibre.NavigationControl(), "top-right");
-      map.addControl(new maplibre.AttributionControl({ compact: true }), "bottom-right");
 
       map.on("load", () => {
         mapRef.current = map;

@@ -133,9 +133,21 @@ export default function App() {
     }
   };
 
-  const handleShare = (location: Location) => {
-    setSelectedLocation(location);
-    setShareDialogOpen(true);
+  const handleShare = async (location: Location) => {
+    const shareUrl = `${window.location.origin}?spot=${location.id}`;
+    const shareText = location.description
+      ? `${location.name} — ${location.description.slice(0, 80)}`
+      : location.name;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: location.name, text: shareText, url: shareUrl });
+      } catch {
+        // user cancelled — do nothing
+      }
+    } else {
+      setSelectedLocation(location);
+      setShareDialogOpen(true);
+    }
   };
 
   const handleDeleteLocation = async (id: string) => {

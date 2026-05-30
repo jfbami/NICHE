@@ -55,7 +55,7 @@ export function AddLocationDialog({ open, onOpenChange, onAddLocation, initialLa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !imageUrl) return;
+    if (!name) return;
 
     onAddLocation(
       {
@@ -116,7 +116,7 @@ export function AddLocationDialog({ open, onOpenChange, onAddLocation, initialLa
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image">Photo</Label>
+            <Label htmlFor="image">Photo <span className="text-muted-foreground text-xs">(optional)</span></Label>
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="image"
@@ -138,9 +138,9 @@ export function AddLocationDialog({ open, onOpenChange, onAddLocation, initialLa
                 id="image"
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={handleImageChange}
                 className="hidden"
-                required
               />
             </div>
           </div>

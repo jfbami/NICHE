@@ -23,16 +23,22 @@ export function LocationCard({
   canDelete,
   onDelete,
 }: LocationCardProps) {
-  const isScraped = location.source === "reddit" || location.source === "instagram";
+  const isScraped = ["reddit", "instagram", "tiktok"].includes(location.source ?? "");
 
   return (
     <div className="overflow-hidden rounded-2xl bg-card border border-border shadow-sm">
       <div className="relative overflow-hidden" style={{ aspectRatio: "4/5", height: "auto" }}>
-        <ImageWithFallback
-          src={location.imageUrl}
-          alt={location.name}
-          className="w-full h-full object-cover"
-        />
+        {location.imageUrl ? (
+          <ImageWithFallback
+            src={location.imageUrl}
+            alt={location.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center" style={{ background: "#E8C49A" }}>
+            <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 800, fontSize: "5rem", color: "#2C1A0E", opacity: 0.35 }}>n</span>
+          </div>
+        )}
         {isScraped && (
           <div
             className="absolute top-2 left-2 flex items-center gap-1 px-2.5 py-1 rounded-full"

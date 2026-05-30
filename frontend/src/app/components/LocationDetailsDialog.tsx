@@ -30,13 +30,15 @@ export function LocationDetailsDialog({ location, open, onOpenChange, onShare }:
         </DialogHeader>
         
         <div className="space-y-4">
-          <div className="relative h-64 md:h-96 overflow-hidden rounded-lg">
-            <ImageWithFallback
-              src={location.imageUrl}
-              alt={location.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
+          {location.imageUrl && (
+            <div className="relative h-64 md:h-96 overflow-hidden rounded-lg">
+              <ImageWithFallback
+                src={location.imageUrl}
+                alt={location.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
 
           <div className="space-y-3">
             <div>
