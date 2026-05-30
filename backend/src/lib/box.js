@@ -114,10 +114,10 @@ async function ensureJsonFile(key, defaultValue) {
   await writeJsonFile(key, defaultValue);
 }
 
-export async function uploadPhoto(photoId, buffer) {
+export async function uploadPhoto(photoId, buffer, extension = 'jpg') {
   const result = await getBoxClient().files.uploadFile(
     folderIds.photos,
-    `${photoId}.jpg`,
+    `${photoId}.${extension}`,
     buffer,
   );
   const fileId = result.entries[0].id;
