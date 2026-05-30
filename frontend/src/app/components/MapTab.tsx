@@ -168,11 +168,20 @@ export function MapTab({ locations, favoriteIds, onViewDetails, onToggleFavorite
     markersRef.current = [];
 
     locationsRef.current.forEach((loc) => {
+      const hasImage = Boolean(loc.imageUrl);
+
+      const cardW  = hasImage ? 36 : 28;
+      const cardH  = hasImage ? 50 : 40;
+      const tailW  = hasImage ? 9  : 7;
+      const tailH  = hasImage ? 14 : 11;
+
       const el = document.createElement("div");
-      el.style.cssText = "width:36px;height:62px;cursor:pointer;";
+      el.style.cssText = `width:${cardW}px;height:${cardH + tailH + 1}px;cursor:pointer;`;
       el.innerHTML = `
-        <div style="width:36px;height:50px;border-radius:7px;border:2px solid #2C1A0E;box-shadow:0 2px 6px rgba(0,0,0,0.3);background-color:#E8C49A;background-image:url('${loc.imageUrl}');background-size:cover;background-position:center;"></div>
-        <div style="width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:14px solid #2C1A0E;margin:0 auto;margin-top:-1px;"></div>
+        <div style="position:relative;width:${cardW}px;height:${cardH}px;border-radius:7px;border:2px solid #2C1A0E;box-shadow:0 2px 6px rgba(0,0,0,0.3);background-color:#E8C49A;${hasImage ? `background-image:url('${loc.imageUrl}');background-size:cover;background-position:center;` : ''}overflow:hidden;">
+          ${!hasImage ? `<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',Georgia,serif;font-weight:800;font-size:19px;color:#2C1A0E;letter-spacing:0.03em;user-select:none;">n</span>` : ''}
+        </div>
+        <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid #2C1A0E;margin:0 auto;margin-top:-1px;"></div>
       `;
 
       el.addEventListener("click", (e) => {
