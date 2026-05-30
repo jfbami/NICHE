@@ -1,0 +1,22 @@
+{
+  "name": "neesh-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Neesh backend — Box as database, Express API",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "init-box": "node src/scripts/initBox.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "box-node-sdk": "^3.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.1.1",
+    "nanoid": "^5.0.7"
+  }
+}

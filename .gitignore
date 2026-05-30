@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+box_config.json
+*_config.json
+*__config.json
+*.log
+.DS_Store
+.vite/
+.claude/settings.local.json
