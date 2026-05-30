@@ -131,3 +131,7 @@ export function uploadPhoto(file: File): Promise<UploadedPhoto> {
     isFormData: true,
   });
 }
+
+export function deleteSpot(id: string): Promise<void> {
+  return request<void>(`/api/spots/${id}`, { method: "DELETE" });
+}

@@ -1,6 +1,8 @@
 const TOKEN_KEY = "neesh.token";
 const USER_KEY = "neesh.user";
 
+const ADMIN_EMAIL = "neesh.admin@neesh.app";
+
 export interface AuthUser {
   id: string;
   username: string;
@@ -30,4 +32,8 @@ export function persistSession(token: string, user: AuthUser): void {
 export function clearSession(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+}
+
+export function isAdminUser(user: AuthUser): boolean {
+  return user.email === ADMIN_EMAIL;
 }
