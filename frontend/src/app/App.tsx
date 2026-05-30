@@ -16,6 +16,7 @@ import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
 import { AuthUser, readUser, clearSession, isAdminUser } from "./lib/authStorage";
 import { logout } from "./lib/api";
+import { useRecommendations } from "./hooks/useRecommendations";
 
 type TabType = "map" | "explore" | "favorites" | "profile";
 
@@ -53,6 +54,8 @@ export default function App() {
     { id: "f3", username: "cityhiker", displayName: "Sam K.", status: "pending_sent" },
   ]);
 
+  const recommendedLocations = useRecommendations(locations, favoriteIds);
+
   if (!currentUser) {
     return (
       <div
@@ -86,6 +89,8 @@ export default function App() {
       loc.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       loc.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const exploreList = searchQuery ? filteredLocations : recommendedLocations;
 
   const favoriteLocations = locations.filter((loc) => favoriteIds.includes(loc.id));
   const filteredFavorites = favoriteLocations.filter(
@@ -226,11 +231,22 @@ export default function App() {
 
               <div className="mb-4">
                 <h3 className="font-semibold text-primary">
-                  {searchQuery ? `Search Results (${filteredLocations.length})` : "Recommended"}
+                  {searchQuery
+                    ? `Search Results (${filteredLocations.length})`
+                    : favoriteIds.length > 0
+                      ? "Recommended for you"
+                      : "Popular spots"}
                 </h3>
+                {!searchQuery && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {favoriteIds.length > 0
+                      ? "Based on the spots you've saved"
+                      : "Save spots to personalize these"}
+                  </p>
+                )}
               </div>
 
-              {filteredLocations.length === 0 ? (
+              {exploreList.length === 0 ? (
                 <div className="text-center py-12">
                   <MapPin className="size-12 text-muted-foreground mx-auto mb-3" />
                   <h3 className="font-semibold mb-1">No locations found</h3>
@@ -248,7 +264,7 @@ export default function App() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-3 pb-2">
-                  {filteredLocations.map((location) => (
+                  {exploreList.map((location) => (
                     <LocationCard
                       key={location.id}
                       location={location}

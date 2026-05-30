@@ -27,10 +27,12 @@ export interface BackendSpotIndexEntry {
   ownerId: string;
   photoUrl: string | null;
   createdAt: string;
+  saveCount?: number;
 }
 
 export function spotToLocation(spot: BackendSpot | BackendSpotIndexEntry): Location {
   const full = spot as Partial<BackendSpot>;
+  const indexEntry = spot as Partial<BackendSpotIndexEntry>;
   return {
     id: spot.id,
     name: spot.title,
@@ -42,6 +44,8 @@ export function spotToLocation(spot: BackendSpot | BackendSpotIndexEntry): Locat
     uploadedAt: new Date(spot.createdAt),
     tags: full.tags ?? [],
     isPublic: spot.isPublic,
+    visibility: spot.isPublic ? "public" : "friends",
+    saveCount: indexEntry.saveCount ?? 0,
   };
 }
 

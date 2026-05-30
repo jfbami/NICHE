@@ -11,7 +11,7 @@ import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-function toIndexEntry(spot) {
+function toIndexEntry(spot, saveCount = 0) {
   return {
     id: spot.id,
     title: spot.title,
@@ -21,7 +21,18 @@ function toIndexEntry(spot) {
     ownerId: spot.ownerId,
     photoUrl: spot.photoUrl,
     createdAt: spot.createdAt,
+    saveCount,
   };
+}
+
+function adjustSaveCount(spotId, delta) {
+  return updateJsonFile('spots_index.json', (index) =>
+    index.map((entry) =>
+      entry.id === spotId
+        ? { ...entry, saveCount: Math.max(0, (entry.saveCount ?? 0) + delta) }
+        : entry,
+    ),
+  );
 }
 
 function canSee(spot, userId, friendIds) {
@@ -151,7 +162,9 @@ router.patch(
     const updated = applyUpdates(spot, req.body);
     await writeJsonFile(`spots/${spot.id}.json`, updated);
     await updateJsonFile('spots_index.json', (index) =>
-      index.map((entry) => (entry.id === spot.id ? toIndexEntry(updated) : entry)),
+      index.map((entry) =>
+        entry.id === spot.id ? toIndexEntry(updated, entry.saveCount ?? 0) : entry,
+      ),
     );
     res.json(updated);
   }),
@@ -176,9 +189,13 @@ router.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     await readSpotOr404(req.params.id);
-    const saved = await updateJsonFile(`user_data/${req.user.userId}/saved.json`, (ids) =>
-      ids.includes(req.params.id) ? ids : [...ids, req.params.id],
-    );
+    let added = false;
+    const saved = await updateJsonFile(`user_data/${req.user.userId}/saved.json`, (ids) => {
+      if (ids.includes(req.params.id)) return ids;
+      added = true;
+      return [...ids, req.params.id];
+    });
+    if (added) await adjustSaveCount(req.params.id, 1);
     res.json({ saved });
   }),
 );
@@ -187,9 +204,13 @@ router.delete(
   '/:id/save',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const saved = await updateJsonFile(`user_data/${req.user.userId}/saved.json`, (ids) =>
-      ids.filter((savedId) => savedId !== req.params.id),
-    );
+    let removed = false;
+    const saved = await updateJsonFile(`user_data/${req.user.userId}/saved.json`, (ids) => {
+      if (!ids.includes(req.params.id)) return ids;
+      removed = true;
+      return ids.filter((savedId) => savedId !== req.params.id);
+    });
+    if (removed) await adjustSaveCount(req.params.id, -1);
     res.json({ saved });
   }),
 );

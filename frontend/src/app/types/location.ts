@@ -11,4 +11,5 @@ export interface Location {
   isPublic: boolean;
   visibility: "public" | "friends" | "private";
   isRecommended?: boolean;
+  saveCount?: number;
 }

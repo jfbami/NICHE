@@ -13,7 +13,7 @@ export const mockLocations: Location[] = [
     tags: ["forest", "nature", "peaceful"],
     isPublic: true,
     visibility: "public",
-    isRecommended: true,
+    saveCount: 12,
   },
   {
     id: "2",
@@ -27,7 +27,7 @@ export const mockLocations: Location[] = [
     tags: ["waterfront", "sunset", "views"],
     isPublic: true,
     visibility: "public",
-    isRecommended: true,
+    saveCount: 24,
   },
   {
     id: "3",
@@ -41,6 +41,7 @@ export const mockLocations: Location[] = [
     tags: ["urban", "garden", "community"],
     isPublic: true,
     visibility: "public",
+    saveCount: 7,
   },
   {
     id: "4",
@@ -54,6 +55,7 @@ export const mockLocations: Location[] = [
     tags: ["underground", "music", "hidden"],
     isPublic: true,
     visibility: "public",
+    saveCount: 15,
   },
   {
     id: "5",
@@ -67,6 +69,7 @@ export const mockLocations: Location[] = [
     tags: ["rooftop", "views", "urban"],
     isPublic: true,
     visibility: "public",
+    saveCount: 19,
   },
   {
     id: "6",
@@ -80,5 +83,6 @@ export const mockLocations: Location[] = [
     tags: ["historic", "underground", "photography"],
     isPublic: true,
     visibility: "public",
+    saveCount: 9,
   },
 ];
